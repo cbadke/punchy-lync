@@ -5,6 +5,7 @@ using System.Data;
 using System.Drawing;
 using System.Linq;
 using System.Reflection;
+using System.Resources;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -14,13 +15,15 @@ namespace punchy_lync
     public partial class MainWindow : Form
     {
         readonly NotifyIcon taskBarIcon;
+        ToolStripItem statusItem;
+        ToolStripItem messageItem;
 
         public MainWindow()
         {
             InitializeComponent();
             taskBarIcon = new NotifyIcon()
             {
-                Icon = System.Drawing.Icon.ExtractAssociatedIcon(Assembly.GetEntryAssembly().Location),
+                Icon = Properties.Resources.red,
                 Visible = true,
                 ContextMenuStrip = CreateContextMenu()
             };
@@ -36,13 +39,14 @@ namespace punchy_lync
         {
             var cm = new ContextMenuStrip();
 
-            var statusItem = cm.Items.Add("Status");
+            statusItem = cm.Items.Add("Status");
             statusItem.Name = "Status";
             statusItem.Text = "Status goes here";
             statusItem.DisplayStyle = ToolStripItemDisplayStyle.ImageAndText;
             statusItem.Font = new Font(statusItem.Font, FontStyle.Bold);
+            statusItem.Image = Properties.Resources.red.ToBitmap();
 
-            var messageItem = cm.Items.Add("Message");
+            messageItem = cm.Items.Add("Message");
             messageItem.Name = "Message";
             messageItem.Text = "Online message goes here";
 
