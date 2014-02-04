@@ -19,16 +19,41 @@ namespace punchy_lync
     {
         Red,
         Green,
-        Yellow,
         None
     }
 
-    public struct StatusInfo
+    public class StatusInfo
     {
-        public ContactAvailability Availability;
+        public Color Color;
+        public String Availability;
         public String Note;
-        public ContactCalendarState CalendarState;
-        public String MeetingSubject;
+
+        public StatusInfo() : this(ContactAvailability.Offline, "", ContactCalendarState.Unknown, "") { }
+
+        public StatusInfo(ContactAvailability Availability, String Note, ContactCalendarState CalendarState, String MeetingSubject)
+        {
+            var availability = Availability;
+            var message = "";
+
+            if (   Availability != ContactAvailability.Busy
+                && Availability != ContactAvailability.DoNotDisturb
+                && Availability != ContactAvailability.Offline)
+            {
+                if (CalendarState == ContactCalendarState.Busy)
+                {
+                    availability = ContactAvailability.Busy;
+                    message = MeetingSubject ?? Note ?? "";
+                }
+                else
+                {
+                    availability = ContactAvailability.Free;
+                }
+            }
+
+            this.Availability = availability.HumanReadable();
+            this.Color = availability.ToColor();
+            this.Note = message;
+        }
     }
 
     public partial class MainWindow : Form
@@ -89,13 +114,7 @@ namespace punchy_lync
         private void Exit_Click(object sender, EventArgs e)
         {
             taskBarIcon.Visible = false;
-            UpdateStatus(new StatusInfo()
-            {
-                Availability = ContactAvailability.Offline,
-                Note = "",
-                CalendarState = ContactCalendarState.Unknown,
-                MeetingSubject = ""
-            });
+            UpdateStatus(new StatusInfo());
             Close();
         }
 
@@ -121,39 +140,19 @@ namespace punchy_lync
                     ContactInformationType.MeetingSubject,
                 });
 
-                return new StatusInfo()
-                {
-                    Availability = (ContactAvailability)info[ContactInformationType.Availability],
-                    Note = (String)info[ContactInformationType.PersonalNote],
-                    CalendarState = (ContactCalendarState)info[ContactInformationType.CurrentCalendarState],
-                    MeetingSubject = (String)info[ContactInformationType.MeetingSubject]
-                };
+                return new StatusInfo
+                (
+                    (ContactAvailability)info[ContactInformationType.Availability],
+                    (String)info[ContactInformationType.PersonalNote],
+                    (ContactCalendarState)info[ContactInformationType.CurrentCalendarState],
+                    (String)info[ContactInformationType.MeetingSubject]
+                );
             }
         }
 
         private void UpdateStatus(StatusInfo status)
         {
-            var availability = status.Availability;
-            var message = "";
-
-            if (   status.Availability != ContactAvailability.Busy
-                && status.Availability != ContactAvailability.DoNotDisturb)
-            {
-                if (status.CalendarState == ContactCalendarState.Busy)
-                {
-                    availability = ContactAvailability.Busy;
-                    message = status.MeetingSubject ?? status.Note ?? "";
-                }
-                else
-                {
-                    availability = ContactAvailability.Free;
-                }
-            }
-
-            statusItem.Text = availability.HumanReadable();
-            messageItem.Text = message;
-
-            switch (availability.ToColor())
+            switch (status.Color)
             {
                 case Color.Red:
                     statusItem.Image = Properties.Resources.red.ToBitmap();
@@ -169,7 +168,9 @@ namespace punchy_lync
                     break;
             }
 
-            SetLight(availability.ToColor());
+            statusItem.Text = status.Availability;
+            messageItem.Text = status.Note;
+            SetLight(status.Color);
         }
 
         private void InitializeLight()
@@ -237,18 +238,17 @@ namespace punchy_lync
             switch (c)
             {
                 case ContactAvailability.Away:
-                case ContactAvailability.None:
                 case ContactAvailability.TemporarilyAway:
-                    return Color.Yellow;
+                case ContactAvailability.Free:
+                case ContactAvailability.FreeIdle:
+                    return Color.Green;
                 case ContactAvailability.Busy:
                 case ContactAvailability.BusyIdle:
                 case ContactAvailability.DoNotDisturb:
                     return Color.Red;
-                case ContactAvailability.Free:
-                case ContactAvailability.FreeIdle:
-                    return Color.Green;
                 case ContactAvailability.Offline:
                 case ContactAvailability.Invalid:
+                case ContactAvailability.None:
                 default:
                     return Color.None;
             }
