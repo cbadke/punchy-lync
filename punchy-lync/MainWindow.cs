@@ -23,13 +23,19 @@ namespace punchy_lync
         None
     }
 
+    public struct StatusInfo
+    {
+        public ContactAvailability Availability;
+        public String Note;
+        public ContactCalendarState CalendarState;
+        public String MeetingSubject;
+    }
+
     public partial class MainWindow : Form
     {
         readonly NotifyIcon taskBarIcon;
         ToolStripItem statusItem;
         ToolStripItem messageItem;
-
-        Color _awayColor;
 
         public MainWindow()
         {
@@ -45,10 +51,8 @@ namespace punchy_lync
 
             var client = Microsoft.Lync.Model.LyncClient.GetClient();
             client.Self.Contact.ContactInformationChanged += Status_Changed;
-            var a = (ContactAvailability)client.Self.Contact.GetContactInformation(ContactInformationType.Availability);
-            var n = (String)client.Self.Contact.GetContactInformation(ContactInformationType.PersonalNote);
 
-            UpdateStatus(a, n ?? "");
+            UpdateStatus(CurrentStatus);
         }
 
         protected override void OnShown(EventArgs e)
@@ -85,24 +89,67 @@ namespace punchy_lync
         private void Exit_Click(object sender, EventArgs e)
         {
             taskBarIcon.Visible = false;
-            UpdateStatus(ContactAvailability.Offline, "");
+            UpdateStatus(new StatusInfo()
+            {
+                Availability = ContactAvailability.Offline,
+                Note = "",
+                CalendarState = ContactCalendarState.Unknown,
+                MeetingSubject = ""
+            });
             Close();
         }
 
         private void Status_Changed(object sender, Microsoft.Lync.Model.ContactInformationChangedEventArgs e)
         {
-            var client = LyncClient.GetClient();
-            var a = (ContactAvailability)client.Self.Contact.GetContactInformation(ContactInformationType.Availability);
-            var n = (String)client.Self.Contact.GetContactInformation(ContactInformationType.PersonalNote);
-
+            var status = CurrentStatus;
             this.Invoke(new MethodInvoker(() =>
             {
-                UpdateStatus(a, n ?? "");
+                UpdateStatus(status);
             }));
         }
 
-        private void UpdateStatus(ContactAvailability availability, string message)
+        private StatusInfo CurrentStatus
         {
+            get
+            {
+                var client = LyncClient.GetClient();
+                var info = client.Self.Contact.GetContactInformation(new List<ContactInformationType>()
+                {
+                    ContactInformationType.Availability,
+                    ContactInformationType.PersonalNote,
+                    ContactInformationType.CurrentCalendarState,
+                    ContactInformationType.MeetingSubject,
+                });
+
+                return new StatusInfo()
+                {
+                    Availability = (ContactAvailability)info[ContactInformationType.Availability],
+                    Note = (String)info[ContactInformationType.PersonalNote],
+                    CalendarState = (ContactCalendarState)info[ContactInformationType.CurrentCalendarState],
+                    MeetingSubject = (String)info[ContactInformationType.MeetingSubject]
+                };
+            }
+        }
+
+        private void UpdateStatus(StatusInfo status)
+        {
+            var availability = status.Availability;
+            var message = "";
+
+            if (   status.Availability != ContactAvailability.Busy
+                && status.Availability != ContactAvailability.DoNotDisturb)
+            {
+                if (status.CalendarState == ContactCalendarState.Busy)
+                {
+                    availability = ContactAvailability.Busy;
+                    message = status.MeetingSubject ?? status.Note ?? "";
+                }
+                else
+                {
+                    availability = ContactAvailability.Free;
+                }
+            }
+
             statusItem.Text = availability.HumanReadable();
             messageItem.Text = message;
 
@@ -112,7 +159,6 @@ namespace punchy_lync
                     statusItem.Image = Properties.Resources.red.ToBitmap();
                     taskBarIcon.Icon = Properties.Resources.red;
                     break;
-                case Color.Yellow:
                 case Color.None:
                     statusItem.Image = Properties.Resources.yellow.ToBitmap();
                     taskBarIcon.Icon = Properties.Resources.yellow;
@@ -134,8 +180,6 @@ namespace punchy_lync
             light.SaveColor(System.Drawing.Color.Green, Punchy.Constants.ColorSlot.Color1);
             light.SaveColor(System.Drawing.Color.Red, Punchy.Constants.ColorSlot.Color2);
             light.TurnOff();
-
-            _awayColor = Color.Red;
         }
 
         private void SetLight(Color c)
@@ -153,20 +197,6 @@ namespace punchy_lync
             }
             else
             {
-                if (_awayColor != c)
-                {
-                    if (_awayColor == Color.Red)
-                    {
-                        light.SaveColor(System.Drawing.Color.Yellow, Punchy.Constants.ColorSlot.Color2);
-                        _awayColor = Color.Yellow;
-                    }
-                    else
-                    {
-                        light.SaveColor(System.Drawing.Color.Red, Punchy.Constants.ColorSlot.Color2);
-                        _awayColor = Color.Red;
-                    }
-                }
-
                 light.TurnOn(Punchy.Constants.ColorSlot.Color2);
             }
             light.SetBrightness(255);
