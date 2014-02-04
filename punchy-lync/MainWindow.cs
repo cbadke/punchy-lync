@@ -18,6 +18,7 @@ namespace punchy_lync
     public partial class MainWindow : Form
     {
         readonly NotifyIcon taskBarIcon;
+        readonly System.Threading.Timer updateTimer;
         ToolStripItem statusItem;
         ToolStripItem messageItem;
 
@@ -33,10 +34,13 @@ namespace punchy_lync
 
             InitializeLight();
 
-            var client = Microsoft.Lync.Model.LyncClient.GetClient();
+            var client = LyncClient.GetClient();
             client.Self.Contact.ContactInformationChanged += Status_Changed;
 
-            UpdateStatus(CurrentStatus);
+            updateTimer = new System.Threading.Timer((Object _) =>
+            {
+                Status_Changed(null, null);
+            }, null, 0, 60000);
         }
 
         protected override void OnShown(EventArgs e)
@@ -90,22 +94,30 @@ namespace punchy_lync
         {
             get
             {
-                var client = LyncClient.GetClient();
-                var info = client.Self.Contact.GetContactInformation(new List<ContactInformationType>()
+                try
                 {
-                    ContactInformationType.Availability,
-                    ContactInformationType.PersonalNote,
-                    ContactInformationType.CurrentCalendarState,
-                    ContactInformationType.MeetingSubject,
-                });
+                    var client = LyncClient.GetClient();
 
-                return new StatusInfo
-                (
-                    (ContactAvailability)info[ContactInformationType.Availability],
-                    (String)info[ContactInformationType.PersonalNote],
-                    (ContactCalendarState)info[ContactInformationType.CurrentCalendarState],
-                    (String)info[ContactInformationType.MeetingSubject]
-                );
+                    var info = client.Self.Contact.GetContactInformation(new List<ContactInformationType>()
+                    {
+                        ContactInformationType.Availability,
+                        ContactInformationType.PersonalNote,
+                        ContactInformationType.CurrentCalendarState,
+                        ContactInformationType.MeetingSubject,
+                    });
+
+                    return new StatusInfo
+                    (
+                        (ContactAvailability)info[ContactInformationType.Availability],
+                        (String)info[ContactInformationType.PersonalNote],
+                        (ContactCalendarState)info[ContactInformationType.CurrentCalendarState],
+                        (String)info[ContactInformationType.MeetingSubject]
+                    );
+                }
+                catch
+                {
+                    return new StatusInfo();
+                }
             }
         }
 

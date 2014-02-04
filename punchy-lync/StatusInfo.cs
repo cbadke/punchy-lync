@@ -28,19 +28,24 @@ namespace punchy_lync
             var availability = Availability;
             var message = "";
 
-            if (Availability != ContactAvailability.Busy
-                && Availability != ContactAvailability.DoNotDisturb
-                && Availability != ContactAvailability.Offline)
+            if (CalendarState == ContactCalendarState.OutsideWorkPeriod &&
+                (Availability == ContactAvailability.Away ||
+                 Availability == ContactAvailability.Invalid ||
+                 Availability == ContactAvailability.None ||
+                 Availability == ContactAvailability.Offline ||
+                 Availability == ContactAvailability.TemporarilyAway))
             {
-                if (CalendarState == ContactCalendarState.Busy)
-                {
-                    availability = ContactAvailability.Busy;
-                    message = MeetingSubject ?? Note ?? "";
-                }
-                else
-                {
-                    availability = ContactAvailability.Free;
-                }
+                availability = ContactAvailability.None;
+            }
+            else if(CalendarState == ContactCalendarState.Busy)
+            {
+                availability = ContactAvailability.Busy;
+                message = MeetingSubject ?? Note ?? "";
+            }
+            else
+            {
+                availability = Availability;
+                message = Note ?? "";
             }
 
             this.Availability = availability.HumanReadable();
