@@ -89,7 +89,7 @@
     <None Include="icons\red.ico" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="icons\yellow.ico" />
+    <None Include="icons\grey.ico" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\punchy-api\PunchyAPI\PunchyAPI.fsproj">

@@ -130,8 +130,8 @@ namespace punchy_lync
                     taskBarIcon.Icon = Properties.Resources.red;
                     break;
                 case Color.None:
-                    statusItem.Image = Properties.Resources.yellow.ToBitmap();
-                    taskBarIcon.Icon = Properties.Resources.yellow;
+                    statusItem.Image = Properties.Resources.grey.ToBitmap();
+                    taskBarIcon.Icon = Properties.Resources.grey;
                     break;
                 default:
                     statusItem.Image = Properties.Resources.green.ToBitmap();
