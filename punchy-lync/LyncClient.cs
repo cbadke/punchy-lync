@@ -15,8 +15,12 @@ namespace punchy_lync
 
     public class LyncClient
     {
+        readonly System.Threading.Timer _clientCheckTimer;
         readonly System.Threading.Timer _updateTimer;
         readonly List<ILyncListener> _listeners;
+
+        private const int SIGNIN_CHECK_TIMEOUT = 5000;
+        private const int STATUS_CHECK_TIMEOUT = 60000;
 
         public LyncClient()
         {
@@ -25,10 +29,49 @@ namespace punchy_lync
             _updateTimer = new System.Threading.Timer((Object _) =>
             {
                 Status_Changed(null, null);
-            }, null, 0, 60000);
+            }, null, System.Threading.Timeout.Infinite, STATUS_CHECK_TIMEOUT);
 
-            var client = Microsoft.Lync.Model.LyncClient.GetClient();
-            client.Self.Contact.ContactInformationChanged += Status_Changed;
+            _clientCheckTimer = new System.Threading.Timer((Object _) =>
+            {
+                try
+                {
+                    var client = Microsoft.Lync.Model.LyncClient.GetClient();
+
+                    if (client.State == ClientState.SignedIn)
+                    {
+                        _clientCheckTimer.Change(System.Threading.Timeout.Infinite, SIGNIN_CHECK_TIMEOUT);
+                        _updateTimer.Change(0, STATUS_CHECK_TIMEOUT);
+
+                        client.StateChanged += SignInChanged;
+                        client.Self.Contact.ContactInformationChanged += Status_Changed;
+                    }
+                }
+                catch
+                {
+
+                }
+            }, null, 0, SIGNIN_CHECK_TIMEOUT);
+        }
+
+        void SignInChanged(object sender, ClientStateChangedEventArgs e)
+        {
+            if (e.NewState == ClientState.SignedOut)
+            {
+                try
+                {
+                    var client = Microsoft.Lync.Model.LyncClient.GetClient();
+
+                    client.StateChanged -= SignInChanged;
+                    client.Self.Contact.ContactInformationChanged -= Status_Changed;
+                }
+                catch
+                {
+
+                }
+
+                _clientCheckTimer.Change(0, SIGNIN_CHECK_TIMEOUT);
+                _updateTimer.Change(System.Threading.Timeout.Infinite, STATUS_CHECK_TIMEOUT);
+            }
         }
 
         private StatusInfo GetCurrentStatus()

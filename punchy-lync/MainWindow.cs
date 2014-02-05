@@ -25,7 +25,7 @@ namespace punchy_lync
             InitializeComponent();
             taskBarIcon = new NotifyIcon()
             {
-                Icon = Properties.Resources.red,
+                Icon = Properties.Resources.grey,
                 Visible = true,
                 ContextMenuStrip = CreateContextMenu()
             };
@@ -48,14 +48,14 @@ namespace punchy_lync
 
             statusItem = cm.Items.Add("Status");
             statusItem.Name = "Status";
-            statusItem.Text = "Status goes here";
+            statusItem.Text = "Offline";
             statusItem.DisplayStyle = ToolStripItemDisplayStyle.ImageAndText;
             statusItem.Font = new Font(statusItem.Font, FontStyle.Bold);
-            statusItem.Image = Properties.Resources.red.ToBitmap();
+            statusItem.Image = Properties.Resources.grey.ToBitmap();
 
             messageItem = cm.Items.Add("Message");
             messageItem.Name = "Message";
-            messageItem.Text = "Online message goes here";
+            messageItem.Text = "";
 
             var separator = cm.Items.Add("-");
 
@@ -117,6 +117,8 @@ namespace punchy_lync
             var light = Punchy.API.GetLights().FirstOrDefault();
             if (light == null) return;
 
+            light.SetBrightness(255);
+
             if (c == Color.None)
             {
                 light.TurnOff();
@@ -129,7 +131,6 @@ namespace punchy_lync
             {
                 light.TurnOn(Punchy.Constants.ColorSlot.Color2);
             }
-            light.SetBrightness(255);
         }
     }
 }
