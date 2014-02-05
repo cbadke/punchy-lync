@@ -11,14 +11,12 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-using Microsoft.Lync.Model;
-
 namespace punchy_lync
 {
-    public partial class MainWindow : Form
+    public partial class MainWindow : Form, ILyncListener
     {
+        readonly LyncClient client;
         readonly NotifyIcon taskBarIcon;
-        readonly System.Threading.Timer updateTimer;
         ToolStripItem statusItem;
         ToolStripItem messageItem;
 
@@ -34,13 +32,8 @@ namespace punchy_lync
 
             InitializeLight();
 
-            var client = LyncClient.GetClient();
-            client.Self.Contact.ContactInformationChanged += Status_Changed;
-
-            updateTimer = new System.Threading.Timer((Object _) =>
-            {
-                Status_Changed(null, null);
-            }, null, 0, 60000);
+            client = new LyncClient();
+            client.Register(this);
         }
 
         protected override void OnShown(EventArgs e)
@@ -78,70 +71,35 @@ namespace punchy_lync
         {
             taskBarIcon.Visible = false;
             UpdateStatus(new StatusInfo());
+            client.Unregister(this);
             Close();
         }
 
-        private void Status_Changed(object sender, Microsoft.Lync.Model.ContactInformationChangedEventArgs e)
+        public void UpdateStatus(StatusInfo status)
         {
-            var status = CurrentStatus;
             this.Invoke(new MethodInvoker(() =>
-            {
-                UpdateStatus(status);
-            }));
-        }
-
-        private StatusInfo CurrentStatus
-        {
-            get
-            {
-                try
                 {
-                    var client = LyncClient.GetClient();
 
-                    var info = client.Self.Contact.GetContactInformation(new List<ContactInformationType>()
+                    switch (status.Color)
                     {
-                        ContactInformationType.Availability,
-                        ContactInformationType.PersonalNote,
-                        ContactInformationType.CurrentCalendarState,
-                        ContactInformationType.MeetingSubject,
-                    });
+                        case Color.Red:
+                            statusItem.Image = Properties.Resources.red.ToBitmap();
+                            taskBarIcon.Icon = Properties.Resources.red;
+                            break;
+                        case Color.None:
+                            statusItem.Image = Properties.Resources.grey.ToBitmap();
+                            taskBarIcon.Icon = Properties.Resources.grey;
+                            break;
+                        default:
+                            statusItem.Image = Properties.Resources.green.ToBitmap();
+                            taskBarIcon.Icon = Properties.Resources.green;
+                            break;
+                    }
 
-                    return new StatusInfo
-                    (
-                        (ContactAvailability)info[ContactInformationType.Availability],
-                        (String)info[ContactInformationType.PersonalNote],
-                        (ContactCalendarState)info[ContactInformationType.CurrentCalendarState],
-                        (String)info[ContactInformationType.MeetingSubject]
-                    );
-                }
-                catch
-                {
-                    return new StatusInfo();
-                }
-            }
-        }
-
-        private void UpdateStatus(StatusInfo status)
-        {
-            switch (status.Color)
-            {
-                case Color.Red:
-                    statusItem.Image = Properties.Resources.red.ToBitmap();
-                    taskBarIcon.Icon = Properties.Resources.red;
-                    break;
-                case Color.None:
-                    statusItem.Image = Properties.Resources.grey.ToBitmap();
-                    taskBarIcon.Icon = Properties.Resources.grey;
-                    break;
-                default:
-                    statusItem.Image = Properties.Resources.green.ToBitmap();
-                    taskBarIcon.Icon = Properties.Resources.green;
-                    break;
-            }
-
-            statusItem.Text = status.Availability;
-            messageItem.Text = status.Note;
-            SetLight(status.Color);
+                    statusItem.Text = status.Availability;
+                    messageItem.Text = status.Note;
+                    SetLight(status.Color);
+                }));
         }
 
         private void InitializeLight()
