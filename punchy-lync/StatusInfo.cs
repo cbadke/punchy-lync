@@ -37,15 +37,22 @@ namespace punchy_lync
             {
                 availability = ContactAvailability.None;
             }
-            else if(CalendarState == ContactCalendarState.Busy)
-            {
-                availability = ContactAvailability.Busy;
-                message = MeetingSubject ?? Note ?? "";
-            }
             else
             {
                 availability = Availability;
-                message = Note ?? "";
+
+                if (!String.IsNullOrWhiteSpace(MeetingSubject))
+                {
+                    message = MeetingSubject;
+                }
+                else if (!String.IsNullOrWhiteSpace(Note))
+                {
+                    message = Note;
+                }
+                else
+                {
+                    message = String.Empty;
+                }
             }
 
             this.Availability = availability.HumanReadable();
