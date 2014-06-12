@@ -1,6 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual Studio 2013
+VisualStudioVersion = 12.0.30110.0
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "PunchyAPI", "punchy-api\PunchyAPI\PunchyAPI.fsproj", "{F02DE70D-4424-4694-9505-1D4420EC7D5D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "punchy-lync", "punchy-lync\punchy-lync.csproj", "{9B62CCA5-1C4E-4ADA-AD6A-9F41C136CD5B}"
