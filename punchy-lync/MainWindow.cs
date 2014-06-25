@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Resources;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -87,6 +88,7 @@ namespace punchy_lync
                             taskBarIcon.Icon = Properties.Resources.red;
                             break;
                         case Color.None:
+                        case Color.Rainbow:
                             statusItem.Image = Properties.Resources.grey.ToBitmap();
                             taskBarIcon.Icon = Properties.Resources.grey;
                             break;
@@ -119,17 +121,88 @@ namespace punchy_lync
 
             light.SetBrightness(255);
 
-            if (c == Color.None)
+            if (c == Color.Red)
             {
-                light.TurnOff();
+                RainbowLight.Stop = true;
+                light.SaveColor(System.Drawing.Color.Red, Punchy.Constants.ColorSlot.Color2);
+                light.TurnOn(Punchy.Constants.ColorSlot.Color2);
+            }
+            else if (c == Color.Rainbow)
+            {
+                RainbowLight.Stop = false;
+                var myThreadDelegate = new ThreadStart(RainbowLight.ShineBright);
+                var myThread = new Thread(myThreadDelegate);
+                myThread.Start();
             }
             else if (c == Color.Green)
             {
+                RainbowLight.Stop = true;
                 light.TurnOn(Punchy.Constants.ColorSlot.Color1);
             }
             else
             {
+                RainbowLight.Stop = true;
+                light.TurnOff();
+            }
+        }
+    }
+
+    public class RainbowLight
+    {
+        private static int Bound(int val, int min, int max)
+        {
+            return Math.Min(max, Math.Max(min, val));
+        }
+        public static bool Stop = false;
+
+        public static void ShineBright()
+        {
+            var light = Punchy.API.GetLights().FirstOrDefault();
+            if (light == null) return;
+
+            var red = 255;
+            var green = 0;
+            var blue = 0;
+            var increment = 32;
+
+            light.SetBrightness(255);
+
+            while(!Stop)
+            {
+                var color = System.Drawing.Color.FromArgb(Bound(red, 0, 255), Bound(green, 0, 255), Bound(blue, 0, 255));
+                    
+                light.SaveColor(color, Punchy.Constants.ColorSlot.Color2);
                 light.TurnOn(Punchy.Constants.ColorSlot.Color2);
+
+                if (red > 0)
+                {
+                    red -= increment;
+                    green += increment;
+                } 
+                else if (blue > 0) 
+                {
+                    green -= increment;
+                    blue += increment;
+                } 
+                else
+                {
+                    if (increment > 0)
+                    {
+                        green -= increment;
+                        blue += increment;
+                    }
+                    else
+                    {
+                        red -= increment;
+                        green += increment;
+                    }
+                }
+
+
+                if (blue >= 255 || red >= 255)
+                    increment = -increment;
+
+                Thread.Sleep(50);
             }
         }
     }

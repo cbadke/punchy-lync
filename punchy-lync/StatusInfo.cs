@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,7 +12,8 @@ namespace punchy_lync
     {
         Red,
         Green,
-        None
+        None,
+        Rainbow
     }
 
     public class StatusInfo
@@ -96,6 +97,8 @@ namespace punchy_lync
             {
                 case ContactAvailability.Away:
                 case ContactAvailability.TemporarilyAway:
+                case ContactAvailability.None:
+                    return Color.Rainbow;
                 case ContactAvailability.Free:
                 case ContactAvailability.FreeIdle:
                     return Color.Green;
@@ -105,7 +108,6 @@ namespace punchy_lync
                     return Color.Red;
                 case ContactAvailability.Offline:
                 case ContactAvailability.Invalid:
-                case ContactAvailability.None:
                 default:
                     return Color.None;
             }
