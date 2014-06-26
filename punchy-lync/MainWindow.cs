@@ -120,28 +120,23 @@ namespace punchy_lync
             if (light == null) return;
 
             light.SetBrightness(255);
+            RainbowLight.Stop();
 
             if (c == Color.Red)
             {
-                RainbowLight.Stop = true;
                 light.SaveColor(System.Drawing.Color.Red, Punchy.Constants.ColorSlot.Color2);
                 light.TurnOn(Punchy.Constants.ColorSlot.Color2);
             }
             else if (c == Color.Rainbow)
             {
-                RainbowLight.Stop = false;
-                var myThreadDelegate = new ThreadStart(RainbowLight.ShineBright);
-                var myThread = new Thread(myThreadDelegate);
-                myThread.Start();
+                RainbowLight.ShineBright();
             }
             else if (c == Color.Green)
             {
-                RainbowLight.Stop = true;
                 light.TurnOn(Punchy.Constants.ColorSlot.Color1);
             }
             else
             {
-                RainbowLight.Stop = true;
                 light.TurnOff();
             }
         }
@@ -149,61 +144,35 @@ namespace punchy_lync
 
     public class RainbowLight
     {
-        private static int Bound(int val, int min, int max)
+        private const int TIMER_PERIOD = 5000;
+
+        public static void Stop()
         {
-            return Math.Min(max, Math.Max(min, val));
+            _timer.Change(System.Threading.Timeout.Infinite, TIMER_PERIOD);
         }
-        public static bool Stop = false;
 
         public static void ShineBright()
         {
+            _timer.Change(0, TIMER_PERIOD);
+        }
+
+        private static List<System.Drawing.Color> Colors = typeof(System.Drawing.Color)
+                                                            .GetProperties()
+                                                            .Where(info => info.PropertyType == typeof(System.Drawing.Color))
+                                                            .Select(info => (System.Drawing.Color)info.GetValue(null, null))
+                                                            .ToList();
+
+        private static System.Threading.Timer _timer = new System.Threading.Timer(x => { 
             var light = Punchy.API.GetLights().FirstOrDefault();
             if (light == null) return;
 
-            var red = 255;
-            var green = 0;
-            var blue = 0;
-            var increment = 32;
+            var r = new Random();
+            var color = Colors[r.Next() % Colors.Count()];
 
             light.SetBrightness(255);
+            light.SaveColor(color, Punchy.Constants.ColorSlot.Color2);
+            light.TurnOn(Punchy.Constants.ColorSlot.Color2);
+        });
 
-            while(!Stop)
-            {
-                var color = System.Drawing.Color.FromArgb(Bound(red, 0, 255), Bound(green, 0, 255), Bound(blue, 0, 255));
-                    
-                light.SaveColor(color, Punchy.Constants.ColorSlot.Color2);
-                light.TurnOn(Punchy.Constants.ColorSlot.Color2);
-
-                if (red > 0)
-                {
-                    red -= increment;
-                    green += increment;
-                } 
-                else if (blue > 0) 
-                {
-                    green -= increment;
-                    blue += increment;
-                } 
-                else
-                {
-                    if (increment > 0)
-                    {
-                        green -= increment;
-                        blue += increment;
-                    }
-                    else
-                    {
-                        red -= increment;
-                        green += increment;
-                    }
-                }
-
-
-                if (blue >= 255 || red >= 255)
-                    increment = -increment;
-
-                Thread.Sleep(50);
-            }
-        }
     }
 }
